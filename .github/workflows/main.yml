@@ -1,0 +1,39 @@
+name: Smart Meter Data Pipeline
+
+on:
+  schedule:
+    - cron: "0 10 15 * *"   # Läuft monatlich am 15. um 10 Uhr UTC
+  push:
+    branches:
+      - main
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download New Data
+        run: python scripts/download_sh_data.py
+
+      - name: Clean Data
+        run: python scripts/clean_sh_data.py
+
+      - name: Train Model
+        run: python models/train_model.py
+
+      - name: Evaluate Model
+        run: python models/evaluate_model.py  # Prüft RMSE
+
+      - name: Deploy Model (if quality improves)
+        if: success()
+        run: python deploy_model.py
